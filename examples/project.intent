@@ -1,0 +1,9 @@
+# Stable project policy example
+C{
+  permission_checks.enforcement=server_side
+}
+
+INV{
+  financial_history.rewrite=never
+  historical_documents.mutable=false
+}

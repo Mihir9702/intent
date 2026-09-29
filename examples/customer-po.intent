@@ -1,0 +1,22 @@
+# Intent v0.2 example — Customer PO linked-line removal
+G{
+  CPO.remove_line
+  SalesOrder.remove_linked_line
+}
+
+C{
+  operation.transaction=PURCHASE_ORDER_UPDATE
+  invoiced_line.action=refuse
+  paid_line.action=refuse
+}
+
+V{
+  SalesOrder.remaining_lines
+  BOL.available_lines
+  transaction.rollback
+}
+
+DONE{
+  tests=pass
+  regression=none
+}

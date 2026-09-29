@@ -1,0 +1,10 @@
+G{
+  financial_history.rewrite=allow
+}
+
+INV{
+  financial_history.rewrite=never
+}
+
+V{tests}
+DONE{tests=pass}
