@@ -1,0 +1,55 @@
+{
+  "version": "0.3",
+  "statements": [
+    {
+      "kind": "verification",
+      "propositions": [
+        {
+          "path": "canonical_semantics.reviewed",
+          "raw": "canonical_semantics.reviewed"
+        }
+      ],
+      "line": 1
+    },
+    {
+      "kind": "done",
+      "propositions": [
+        {
+          "path": "typecheck",
+          "value": "pass",
+          "raw": "typecheck=pass"
+        }
+      ],
+      "line": 1
+    }
+  ],
+  "semantics": {
+    "ontology": "intent-core/0.1",
+    "entities": [
+      {
+        "id": "old_document",
+        "kind": "document",
+        "resolution": "resolved"
+      },
+      {
+        "id": "corrected_version",
+        "kind": "document",
+        "resolution": "resolved"
+      }
+    ],
+    "operations": [
+      {
+        "id": "replace_document",
+        "kind": "replace",
+        "target": "old_document",
+        "arguments": [
+          {
+            "role": "with",
+            "entity": "corrected_version"
+          }
+        ],
+        "dependsOn": []
+      }
+    ]
+  }
+}

@@ -2,11 +2,205 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "entities",
+    "operations",
     "statements",
     "unresolved",
     "notes"
   ],
   "properties": {
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "type",
+          "label",
+          "resolution",
+          "candidates",
+          "source_line"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+          },
+          "kind": {
+            "enum": [
+              "document",
+              "record",
+              "collection",
+              "file",
+              "actor",
+              "system",
+              "service",
+              "resource",
+              "unknown"
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution": {
+            "enum": [
+              "resolved",
+              "unresolved"
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_line": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "has_target",
+          "target",
+          "arguments",
+          "depends_on",
+          "source_line"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+          },
+          "kind": {
+            "enum": [
+              "observe",
+              "analyze",
+              "create",
+              "update",
+              "set",
+              "delete",
+              "replace",
+              "link",
+              "unlink",
+              "move",
+              "copy",
+              "execute"
+            ]
+          },
+          "has_target": {
+            "type": "boolean"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "kind",
+                "entity",
+                "value"
+              ],
+              "properties": {
+                "role": {
+                  "enum": [
+                    "with",
+                    "to",
+                    "from",
+                    "related",
+                    "field",
+                    "value",
+                    "input"
+                  ]
+                },
+                "kind": {
+                  "enum": [
+                    "entity",
+                    "scalar"
+                  ]
+                },
+                "entity": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+            }
+          },
+          "source_line": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
     "statements": {
       "type": "array",
       "items": {
@@ -21,7 +215,6 @@
         "properties": {
           "kind": {
             "enum": [
-              "goal",
               "observation",
               "hypothesis",
               "constraint",

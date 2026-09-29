@@ -36,6 +36,33 @@ export function renderEnglish(program: IntentProgram): string {
     sections.push(`${LABELS[kind]}\n${lines.join("\n")}`);
   }
 
+  if (program.semantics?.entities.length) {
+    const lines = program.semantics.entities.map((entity) => {
+      const subtype = entity.type ? `:${entity.type}` : "";
+      const status = entity.resolution === "unresolved" ? " [unresolved]" : "";
+      return `- @${entity.id} <${entity.kind}${subtype}>${status}${entity.label ? ` — ${entity.label}` : ""}`;
+    });
+    sections.push(`Canonical entities
+${lines.join("\n")}`);
+  }
+
+  if (program.semantics?.operations.length) {
+    const lines = program.semantics.operations.map((operation) => {
+      const target = operation.target ? ` @${operation.target}` : "";
+      const args = operation.arguments.map((argument) =>
+        "entity" in argument && typeof argument.entity === "string"
+          ? `${argument.role}=@${argument.entity}`
+          : `${argument.role}=${JSON.stringify(argument.value)}`
+      );
+      const dependency = operation.dependsOn.length
+        ? ` after=[${operation.dependsOn.join(", ")}]`
+        : "";
+      return `- ${operation.id}: ${operation.kind}${target}${args.length ? ` (${args.join(", ")})` : ""}${dependency}`;
+    });
+    sections.push(`Canonical operations
+${lines.join("\n")}`);
+  }
+
   if (program.unresolved?.length) {
     const lines = program.unresolved.map((ref) => {
       const candidates = ref.candidates.length ? ref.candidates.join(", ") : "none supplied";

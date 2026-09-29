@@ -12,7 +12,12 @@ const TAG: Record<IntentStatement["kind"], string> = {
 };
 
 function escapeXml(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 export function renderClaude(program: IntentProgram): string {
@@ -22,6 +27,38 @@ export function renderClaude(program: IntentProgram): string {
   }
 
   const lines = [`<intent version="${program.version}">`];
+
+  if (program.semantics) {
+    lines.push(`  <canonical_semantics ontology="${escapeXml(program.semantics.ontology)}">`);
+    lines.push("    <entities>");
+    for (const entity of program.semantics.entities) {
+      const type = entity.type ? ` type="${escapeXml(entity.type)}"` : "";
+      const label = entity.label ? ` label="${escapeXml(entity.label)}"` : "";
+      lines.push(
+        `      <entity id="${escapeXml(entity.id)}" kind="${entity.kind}" resolution="${entity.resolution}"${type}${label}/>`
+      );
+    }
+    lines.push("    </entities>");
+    lines.push("    <operations>");
+    for (const operation of program.semantics.operations) {
+      const target = operation.target ? ` target="${escapeXml(operation.target)}"` : "";
+      lines.push(`      <operation id="${escapeXml(operation.id)}" kind="${operation.kind}"${target}>`);
+      for (const dependency of operation.dependsOn) {
+        lines.push(`        <depends_on operation="${escapeXml(dependency)}"/>`);
+      }
+      for (const argument of operation.arguments) {
+        if ("entity" in argument && typeof argument.entity === "string") {
+          lines.push(`        <arg role="${argument.role}" entity="${escapeXml(argument.entity)}"/>`);
+        } else {
+          lines.push(`        <arg role="${argument.role}" value="${escapeXml(JSON.stringify(argument.value))}"/>`);
+        }
+      }
+      lines.push("      </operation>");
+    }
+    lines.push("    </operations>");
+    lines.push("  </canonical_semantics>");
+  }
+
   for (const kind of Object.keys(TAG) as IntentStatement["kind"][]) {
     const statements = grouped.get(kind);
     if (!statements?.length) continue;

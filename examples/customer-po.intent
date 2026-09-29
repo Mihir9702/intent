@@ -1,4 +1,4 @@
-# Intent v0.2 example — Customer PO linked-line removal
+# Intent v0.3 compact-policy example — Customer PO linked-line removal
 G{
   CPO.remove_line
   SalesOrder.remove_linked_line

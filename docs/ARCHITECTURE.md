@@ -7,16 +7,28 @@ Natural language
 Probabilistic semantic frontend
       |
       v
+Strict Semantic Draft
+  - canonical entity proposals
+  - canonical operation proposals
+  - statements
+  - unresolved ambiguity
+      |
+      v
+Deterministic normalizer
+      |
+      v
 Canonical Intent AST
       |
-      +--> deterministic schema validation
-      +--> project/domain invariant validation
+      +--> AST shape validation
+      +--> Canonical Ontology type checking
+      +--> operation dependency checking
+      +--> project invariant validation
       +--> ambiguity/conflict diagnostics
       |
       v
 Target compiler
   |       |       |
-Claude   Codex   Gemini
+Claude   Codex   future adapters
       |
       v
 Execution-capable agent
@@ -27,22 +39,64 @@ Independent verification
 
 ## Trust boundary
 
-The semantic frontend is allowed to be probabilistic. It is not authoritative.
+The semantic frontend is probabilistic and non-authoritative.
 
-A frontend may propose an AST, but the deterministic compiler decides whether the AST is structurally valid and whether known invariants permit compilation.
+It cannot create new operation verbs or argument roles. It can only map source language into the canonical vocabulary accepted by the deterministic compiler.
+
+The normalizer attaches source provenance and converts the strict provider schema into the canonical AST.
+
+The deterministic layers decide whether the result is structurally valid, type-compatible, sufficiently resolved, and permitted by inherited project policy.
 
 > AI interprets. Intent represents. Deterministic code validates. Tools execute. Independent evidence verifies.
 
-## Why compact syntax is not the IR
+## Why two schemas exist
 
-The `.intent` syntax exists for humans and source control. The canonical AST is the interoperability boundary. Other serializations or graphical editors may produce the same AST without using compact syntax at all.
+The **semantic-draft schema** is optimized for constrained model output. Every object property is required so providers with strict structured-output requirements can enforce it. Null/boolean markers represent optional semantics explicitly.
 
-## Planned trust layers
+The **canonical Intent AST** is optimized for software interoperability and source control. Optional information is represented normally.
 
-1. **Syntax** — parser correctness.
-2. **Shape** — canonical AST schema.
-3. **Semantics** — cross-statement conflicts and invariants.
-4. **Domain rules** — project-specific rules such as immutable financial history.
-5. **Ambiguity** — unresolved references from natural language remain explicit rather than guessed.
-6. **Target adapter** — compilation for a specific model/provider.
-7. **Evidence** — tests and independent review establish completion.
+This separation prevents provider-specific schema restrictions from contaminating the language itself.
+
+## Why compact syntax is not the operational IR
+
+Compact `.intent` is useful for human-authored policy and epistemic statements.
+
+Canonical operation graphs use JSON because they contain entity bindings, typed arguments, and dependencies. Until compact syntax can represent all of that losslessly, its renderer refuses semantic programs rather than dropping information.
+
+## Provider independence
+
+A provider may internally describe the source in different language:
+
+```text
+replacement.source
+replacement.replacement
+new_document
+replacement.input
+```
+
+None of those labels are canonical.
+
+The normalized result must instead be equivalent to:
+
+```text
+entity old_document       : document
+entity corrected_version  : document
+
+operation replace_document:
+  replace old_document with corrected_version
+```
+
+This is the main architectural purpose of the Canonical Intent Ontology.
+
+## Current trust layers
+
+1. **Source parsing** — compact syntax or canonical JSON.
+2. **Draft schema** — bounds probabilistic frontend output.
+3. **Normalization** — converts provider schema to canonical AST.
+4. **AST shape** — verifies runtime structure.
+5. **Ontology types** — verifies entities, verbs, roles, and compatibility.
+6. **Dependency graph** — validates explicit operation ordering.
+7. **Project policy** — inherited constraints and invariants.
+8. **Ambiguity** — unresolved references remain compiler-visible.
+9. **Target adapter** — produces model/provider-specific execution prompt.
+10. **Evidence** — tests and independent review establish completion.

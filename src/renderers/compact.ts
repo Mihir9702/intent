@@ -18,6 +18,9 @@ function scalar(value: Scalar): string {
 }
 
 export function renderCompact(program: IntentProgram): string {
+  if (program.semantics && (program.semantics.entities.length || program.semantics.operations.length)) {
+    throw new Error("compact Intent syntax cannot represent canonical semantics yet");
+  }
   if (program.unresolved?.length) {
     throw new Error("cannot render compact Intent while unresolved references remain");
   }

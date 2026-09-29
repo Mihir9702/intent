@@ -1,4 +1,5 @@
 import type { Diagnostic, IntentProgram, IntentStatement, Proposition } from "./model.js";
+import { validateSemanticsShape } from "./ontology/schema.js";
 
 const KINDS = new Set([
   "goal",
@@ -20,7 +21,7 @@ function isScalar(value: unknown): boolean {
 export function validateProgramShape(program: IntentProgram): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
 
-  if (program.version !== "0.2") {
+  if (program.version !== "0.3") {
     diagnostics.push({ severity: "error", code: "E001", message: `unsupported Intent version '${String(program.version)}'` });
   }
 
@@ -60,6 +61,10 @@ export function validateProgramShape(program: IntentProgram): Diagnostic[] {
         diagnostics.push({ severity: "error", code: "E010", message: `missing raw source for '${proposition.path}'`, line: statement.line });
       }
     }
+  }
+
+  if (program.semantics !== undefined) {
+    diagnostics.push(...validateSemanticsShape(program.semantics));
   }
 
   if (program.unresolved !== undefined) {

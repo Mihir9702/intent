@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://intent.dev/schema/0.2/intent.schema.json",
+  "$id": "https://intent.dev/schema/0.3/intent.schema.json",
   "title": "Intent Program",
   "type": "object",
   "required": [
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "version": {
-      "const": "0.2"
+      "const": "0.3"
     },
     "metadata": {
       "type": "object",
@@ -131,6 +131,185 @@
         },
         "additionalProperties": false
       }
+    },
+    "semantics": {
+      "type": "object",
+      "required": [
+        "ontology",
+        "entities",
+        "operations"
+      ],
+      "properties": {
+        "ontology": {
+          "const": "intent-core/0.1"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "resolution"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+              },
+              "kind": {
+                "enum": [
+                  "document",
+                  "record",
+                  "collection",
+                  "file",
+                  "actor",
+                  "system",
+                  "service",
+                  "resource",
+                  "unknown"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)+$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "resolved",
+                  "unresolved"
+                ]
+              },
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "source": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "arguments",
+              "dependsOn"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+              },
+              "kind": {
+                "enum": [
+                  "observe",
+                  "analyze",
+                  "create",
+                  "update",
+                  "set",
+                  "delete",
+                  "replace",
+                  "link",
+                  "unlink",
+                  "move",
+                  "copy",
+                  "execute"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "arguments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "role"
+                  ],
+                  "properties": {
+                    "role": {
+                      "enum": [
+                        "with",
+                        "to",
+                        "from",
+                        "related",
+                        "field",
+                        "value",
+                        "input"
+                      ]
+                    },
+                    "entity": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "entity"
+                      ],
+                      "not": {
+                        "required": [
+                          "value"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ],
+                      "not": {
+                        "required": [
+                          "entity"
+                        ]
+                      }
+                    }
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "dependsOn": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

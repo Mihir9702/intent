@@ -1,6 +1,6 @@
 {
   "name": "intent-compiler",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "schema:generate": "npm run build && node scripts/generate-semantic-schema.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
     "check": "npm test"
   },

@@ -1,4 +1,6 @@
-export const INTENT_VERSION = "0.2" as const;
+import type { CanonicalSemantics } from "./ontology/model.js";
+
+export const INTENT_VERSION = "0.3" as const;
 
 export type StatementKind =
   | "goal"
@@ -43,6 +45,8 @@ export interface UnresolvedReference {
 export interface IntentProgram {
   version: typeof INTENT_VERSION;
   statements: IntentStatement[];
+  /** Canonical provider-independent entities and operations. */
+  semantics?: CanonicalSemantics;
   /** Ambiguities intentionally left unresolved by a semantic frontend. */
   unresolved?: UnresolvedReference[];
   metadata?: {

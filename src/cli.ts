@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
 import { parseIntent, IntentParseError } from "./parser.js";
+import { parseIntentJson } from "./json.js";
 import { validateIntent } from "./validator.js";
 import { applyInheritedPolicies } from "./project.js";
 import { INTENT_VERSION, type IntentProgram } from "./model.js";
@@ -12,7 +13,9 @@ import { renderCompact } from "./renderers/compact.js";
 
 async function load(file: string) {
   const source = await readFile(file, "utf8");
-  return parseIntent(source, file);
+  return file.toLowerCase().endsWith(".json")
+    ? parseIntentJson(source)
+    : parseIntent(source, file);
 }
 
 function valuesAfterAll(args: string[], flag: string): string[] {
@@ -60,7 +63,7 @@ function printDiagnostics(result: ReturnType<typeof validateIntent>, stderr = fa
 }
 
 function usage(): never {
-  console.log(`Intent 0.2
+  console.log(`Intent 0.3
 
 Usage:
   intent parse <file> [--inherit policy.intent]
@@ -68,7 +71,7 @@ Usage:
   intent explain <file> [--inherit policy.intent]
   intent compile <file> [--inherit policy.intent] [--target claude|json|compact] [--out path]
   intent translate <english.txt> --via claude|codex [--model name] [--effort high]
-                   [--inherit policy.intent] [--format json|explain|compact] [--out path]
+                   [--inherit policy.intent] [--format json|explain] [--out path]
 
 --inherit may be repeated.
 translate never executes coding tools; it only proposes and validates Intent.`);
@@ -85,6 +88,11 @@ async function translate(file: string, args: string[]) {
   const via = valueAfter(args, "--via") ?? "claude";
   if (!["claude", "codex"].includes(via)) {
     throw new Error(`unsupported semantic frontend '${via}'`);
+  }
+
+  const format = valueAfter(args, "--format") ?? "json";
+  if (!["json", "explain"].includes(format)) {
+    throw new Error("semantic translation output must be canonical json or explain");
   }
 
   const text = await readFile(file, "utf8");
@@ -105,16 +113,9 @@ async function translate(file: string, args: string[]) {
     : translated.program;
   const validation = validateIntent(program);
 
-  const format = valueAfter(args, "--format") ?? "json";
-  let output: string;
-  if (format === "json") output = JSON.stringify(program, null, 2);
-  else if (format === "explain") output = renderEnglish(program);
-  else if (format === "compact") {
-    if (!validation.ok) throw new Error("cannot emit compact Intent until validation errors are resolved");
-    output = renderCompact(program);
-  } else {
-    throw new Error(`unknown translate format '${format}'`);
-  }
+  const output = format === "json"
+    ? JSON.stringify(program, null, 2)
+    : renderEnglish(program);
 
   await emit(output, valueAfter(args, "--out"));
 

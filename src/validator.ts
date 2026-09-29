@@ -1,5 +1,6 @@
 import type { Diagnostic, IntentProgram, Proposition, ValidationResult } from "./model.js";
 import { validateProgramShape } from "./schema.js";
+import { typeCheckSemantics } from "./ontology/typechecker.js";
 
 function scalarKey(value: Proposition["value"]): string {
   return JSON.stringify(value);
@@ -8,6 +9,10 @@ function scalarKey(value: Proposition["value"]): string {
 export function validateIntent(program: IntentProgram): ValidationResult {
   const diagnostics: Diagnostic[] = [...validateProgramShape(program)];
   if (diagnostics.some((d) => d.severity === "error")) return { ok: false, diagnostics };
+
+  if (program.semantics) {
+    diagnostics.push(...typeCheckSemantics(program.semantics));
+  }
 
   for (const ref of program.unresolved ?? []) {
     diagnostics.push({
@@ -52,11 +57,14 @@ export function validateIntent(program: IntentProgram): ValidationResult {
   const done = program.statements.filter((s) => s.kind === "done");
   const invariants = program.statements.filter((s) => s.kind === "invariant");
 
-  if (goals.length === 0) diagnostics.push({ severity: "warning", code: "W101", message: "program has no goal" });
+  const hasCanonicalOperations = (program.semantics?.operations.length ?? 0) > 0;
+  if (goals.length === 0 && !hasCanonicalOperations) {
+    diagnostics.push({ severity: "warning", code: "W101", message: "program has no goal or canonical operation" });
+  }
   if (verification.length === 0) diagnostics.push({ severity: "warning", code: "W102", message: "program has no verification requirements" });
   if (done.length === 0) diagnostics.push({ severity: "warning", code: "W103", message: "program has no explicit completion conditions" });
 
-  // v0.2 semantic protection: a goal assigning a value directly against an invariant is a compile error.
+  // v0.3 legacy-statement semantic protection: a goal assigning a value directly against an invariant is a compile error.
   for (const goal of goals) {
     for (const gp of goal.propositions) {
       if (gp.value === undefined) continue;
