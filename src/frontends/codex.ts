@@ -10,6 +10,7 @@ import { buildSemanticParsingPrompt } from "./prompt.js";
 export interface CodexSemanticFrontendOptions {
   command?: string;
   model?: string;
+  effort?: "low" | "medium" | "high" | "xhigh" | "max" | "ultra";
 }
 
 function runProcess(command: string, args: string[], stdin: string): Promise<void> {
@@ -38,6 +39,7 @@ export class CodexSemanticFrontend implements SemanticFrontend {
   private readonly command: string;
   private readonly commandPrefix: string[];
   private readonly model?: string;
+  private readonly effort?: "low" | "medium" | "high" | "xhigh" | "max" | "ultra";
 
   constructor(options: CodexSemanticFrontendOptions = {}) {
     if (options.command) {
@@ -61,6 +63,7 @@ export class CodexSemanticFrontend implements SemanticFrontend {
       throw new Error("Codex model name contains unsafe characters");
     }
     this.model = options.model;
+    this.effort = options.effort;
   }
 
   async translate(request: SemanticFrontendRequest): Promise<SemanticFrontendResult> {
@@ -84,6 +87,7 @@ export class CodexSemanticFrontend implements SemanticFrontend {
         "--output-last-message", outputPath
       ];
       if (this.model) args.push("--model", this.model);
+      if (this.effort) args.push("-c", `model_reasoning_effort="${this.effort}"`);
       args.push("-");
 
       await runProcess(this.command, [...this.commandPrefix, ...args], buildSemanticParsingPrompt(request));

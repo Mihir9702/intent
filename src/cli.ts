@@ -101,7 +101,7 @@ async function translate(file: string, args: string[]) {
   const effort = (valueAfter(args, "--effort") ?? "high") as "low" | "medium" | "high" | "xhigh" | "max";
   const frontend = via === "claude"
     ? new ClaudeSemanticFrontend({ model: model ?? "opus", effort })
-    : new CodexSemanticFrontend({ model });
+    : new CodexSemanticFrontend({ model, effort });
 
   const translated = await frontend.translate({
     text,
