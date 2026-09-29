@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
-import { basename } from "node:path";
 import { parseIntent, IntentParseError } from "./parser.js";
 import { validateIntent } from "./validator.js";
 import { applyInheritedPolicies } from "./project.js";
+import { INTENT_VERSION, type IntentProgram } from "./model.js";
+import { ClaudeSemanticFrontend } from "./frontends/claude.js";
+import { CodexSemanticFrontend } from "./frontends/codex.js";
 import { renderEnglish } from "./renderers/english.js";
 import { renderClaude } from "./renderers/claude.js";
 import { renderCompact } from "./renderers/compact.js";
@@ -25,16 +27,27 @@ function valueAfter(args: string[], flag: string): string | undefined {
   return valuesAfterAll(args, flag)[0];
 }
 
-async function loadWithPolicies(file: string, args: string[]) {
-  const task = await load(file);
-  const inheritedFiles = valuesAfterAll(args, "--inherit");
-  if (!inheritedFiles.length) return task;
-  const inherited = await Promise.all(inheritedFiles.map(load));
-  return applyInheritedPolicies(task, inherited);
+async function loadPolicies(args: string[]) {
+  return Promise.all(valuesAfterAll(args, "--inherit").map(load));
 }
 
-function printDiagnostics(result: ReturnType<typeof validateIntent>) {
-  if (!result.diagnostics.length) console.log("PASS — no diagnostics");
+async function loadWithPolicies(file: string, args: string[]) {
+  const task = await load(file);
+  const inherited = await loadPolicies(args);
+  return inherited.length ? applyInheritedPolicies(task, inherited) : task;
+}
+
+function policyContext(inherited: IntentProgram[]): IntentProgram | undefined {
+  if (!inherited.length) return undefined;
+  return applyInheritedPolicies(
+    { version: INTENT_VERSION, statements: [], metadata: { name: "inherited-policy" } },
+    inherited
+  );
+}
+
+function printDiagnostics(result: ReturnType<typeof validateIntent>, stderr = false) {
+  const write = stderr ? console.error : console.log;
+  if (!result.diagnostics.length) write("PASS — no diagnostics");
   for (const d of result.diagnostics) {
     const location = d.source
       ? ` ${d.source}${d.line ? `:${d.line}` : ""}`
@@ -42,7 +55,7 @@ function printDiagnostics(result: ReturnType<typeof validateIntent>) {
     const related = d.relatedSource
       ? ` (related ${d.relatedSource}${d.relatedLine ? `:${d.relatedLine}` : ""})`
       : d.relatedLine ? ` (related line ${d.relatedLine})` : "";
-    console.log(`${d.severity === "error" ? "ERROR" : "WARN"} ${d.code}${location}: ${d.message}${related}`);
+    write(`${d.severity === "error" ? "ERROR" : "WARN"} ${d.code}${location}: ${d.message}${related}`);
   }
 }
 
@@ -54,10 +67,62 @@ Usage:
   intent validate <file> [--inherit policy.intent]
   intent explain <file> [--inherit policy.intent]
   intent compile <file> [--inherit policy.intent] [--target claude|json|compact] [--out path]
+  intent translate <english.txt> --via claude|codex [--model name] [--effort high]
+                   [--inherit policy.intent] [--format json|explain|compact] [--out path]
 
---inherit may be repeated.`);
+--inherit may be repeated.
+translate never executes coding tools; it only proposes and validates Intent.`);
   process.exitCode = 2;
   throw new Error("usage");
+}
+
+async function emit(output: string, out?: string) {
+  if (out) await writeFile(out, output + "\n", "utf8");
+  else console.log(output);
+}
+
+async function translate(file: string, args: string[]) {
+  const via = valueAfter(args, "--via") ?? "claude";
+  if (!["claude", "codex"].includes(via)) {
+    throw new Error(`unsupported semantic frontend '${via}'`);
+  }
+
+  const text = await readFile(file, "utf8");
+  const inherited = await loadPolicies(args);
+  const model = valueAfter(args, "--model");
+  const effort = (valueAfter(args, "--effort") ?? "high") as "low" | "medium" | "high" | "xhigh" | "max";
+  const frontend = via === "claude"
+    ? new ClaudeSemanticFrontend({ model: model ?? "opus", effort })
+    : new CodexSemanticFrontend({ model });
+
+  const translated = await frontend.translate({
+    text,
+    source: file,
+    inheritedProgram: policyContext(inherited)
+  });
+  const program = inherited.length
+    ? applyInheritedPolicies(translated.program, inherited)
+    : translated.program;
+  const validation = validateIntent(program);
+
+  const format = valueAfter(args, "--format") ?? "json";
+  let output: string;
+  if (format === "json") output = JSON.stringify(program, null, 2);
+  else if (format === "explain") output = renderEnglish(program);
+  else if (format === "compact") {
+    if (!validation.ok) throw new Error("cannot emit compact Intent until validation errors are resolved");
+    output = renderCompact(program);
+  } else {
+    throw new Error(`unknown translate format '${format}'`);
+  }
+
+  await emit(output, valueAfter(args, "--out"));
+
+  for (const note of translated.notes ?? []) {
+    console.error(`NOTE frontend: ${note}`);
+  }
+  if (validation.diagnostics.length) printDiagnostics(validation, true);
+  if (!validation.ok) process.exitCode = 1;
 }
 
 async function main() {
@@ -65,24 +130,27 @@ async function main() {
   if (args.length < 2 || args.includes("--help") || args.includes("-h")) usage();
 
   const [command, file] = args;
+
+  if (command === "translate") {
+    await translate(file, args);
+    return;
+  }
+
   const program = await loadWithPolicies(file, args);
 
   switch (command) {
     case "parse":
       console.log(JSON.stringify(program, null, 2));
       return;
-
     case "validate": {
       const result = validateIntent(program);
       printDiagnostics(result);
       if (!result.ok) process.exitCode = 1;
       return;
     }
-
     case "explain":
       console.log(renderEnglish(program));
       return;
-
     case "compile": {
       const validation = validateIntent(program);
       if (!validation.ok) {
@@ -92,19 +160,15 @@ async function main() {
       }
 
       const target = valueAfter(args, "--target") ?? "claude";
-      const out = valueAfter(args, "--out");
       let output: string;
-
       if (target === "claude") output = renderClaude(program);
       else if (target === "json") output = JSON.stringify(program, null, 2);
       else if (target === "compact") output = renderCompact(program);
       else throw new Error(`unknown target '${target}'`);
 
-      if (out) await writeFile(out, output + "\n", "utf8");
-      else console.log(output);
+      await emit(output, valueAfter(args, "--out"));
       return;
     }
-
     default:
       usage();
   }

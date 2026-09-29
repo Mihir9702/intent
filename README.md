@@ -91,3 +91,31 @@ Compact `.intent` syntax intentionally cannot serialize unresolved references ye
 Intent does **not** make a model smarter. It attempts to make instructions more explicit, disagreements inspectable, and dangerous ambiguity compiler-visible.
 
 The next layer is a local semantic frontend that asks an existing coding model to propose canonical Intent, then runs the deterministic validator before the result can be compiled for execution.
+
+## Semantic frontends
+
+Intent can now ask an installed coding model to propose a semantic draft, then normalize and validate it before anything is compiled for execution.
+
+```bash
+# Claude Code
+node dist/src/cli.js translate examples/ambiguous.txt \
+  --via claude --model opus --format explain
+
+# Codex
+node dist/src/cli.js translate examples/ambiguous.txt \
+  --via codex --format explain
+```
+
+The frontend runs as a parser, not as an implementation agent. It is instructed not to invent tests, completion criteria, invariants, or other requirements. Source lines are preserved, project policy is read-only context, and ambiguous references remain explicit.
+
+The structured draft schema is intentionally stricter than the canonical Intent AST so it works with schema-constrained model outputs across providers. Bare propositions use an explicit `has_value=false` marker instead of relying on an omitted property.
+
+A deliberately ambiguous example:
+
+```text
+Replace the old document with the corrected version, then delete the old one.
+```
+
+was live-tested through the local Codex CLI. Codex represented the requested operations but left “the old one” unresolved; deterministic validation then blocked compilation with `E301`.
+
+The Claude adapter is implemented and fixture-tested. A live Claude run on this machine currently reaches the provider but is blocked by the account's usage limit before inference.

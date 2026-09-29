@@ -2,6 +2,9 @@ import type { IntentProgram } from "./model.js";
 
 export interface SemanticFrontendRequest {
   text: string;
+  /** Human source name used for provenance, e.g. task.txt. */
+  source?: string;
+  /** Read-only policy/context. A frontend must not mutate or re-author it. */
   inheritedProgram?: IntentProgram;
 }
 
