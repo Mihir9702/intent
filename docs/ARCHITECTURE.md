@@ -94,9 +94,11 @@ This is the main architectural purpose of the Canonical Intent Ontology.
 2. **Draft schema** — bounds probabilistic frontend output.
 3. **Normalization** — converts provider schema to canonical AST.
 4. **AST shape** — verifies runtime structure.
-5. **Ontology types** — verifies entities, verbs, roles, and compatibility.
-6. **Dependency graph** — validates explicit operation ordering.
-7. **Project policy** — inherited constraints and invariants.
+5. **Ontology types** — verifies entities, verbs, roles, and compatibility (including hierarchical subtyping).
+6. **Dependency graph** — validates explicit operation ordering and rejects cycles.
+7. **Project policy** — inherited constraints and invariants with universal, prefix, and hierarchical matching.
 8. **Ambiguity** — unresolved references remain compiler-visible.
-9. **Target adapter** — produces model/provider-specific execution prompts (Claude structured XML or Codex markdown specifications).
-10. **Evidence** — tests and independent review establish completion.
+9. **Abstract state simulation** — topological lifecycle simulation to catch temporal hazards (use-after-delete, use-before-create, double-create).
+10. **Target adapter** — produces model/provider-specific execution prompts (Claude structured XML or Codex markdown specifications).
+11. **Runtime process supervision** — live execution mediation and real-time evidence collection.
+12. **Independent verification** — closed-loop evidence checking and cryptographically signed audit certificates.
