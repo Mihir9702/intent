@@ -97,8 +97,8 @@ export function validateIntent(program: IntentProgram): ValidationResult {
       if (
         prior &&
         scalarKey(prior.value) !== scalarKey(proposition.value) &&
-        ["observation", "invariant"].includes(statement.kind) &&
-        ["observation", "invariant"].includes(prior.kind)
+        ["observation", "invariant", "constraint"].includes(statement.kind) &&
+        ["observation", "invariant", "constraint"].includes(prior.kind)
       ) {
         diagnostics.push({
           severity: "error",
@@ -109,7 +109,7 @@ export function validateIntent(program: IntentProgram): ValidationResult {
           relatedLine: prior.line,
           relatedSource: prior.source
         });
-      } else if (["observation", "invariant"].includes(statement.kind)) {
+      } else if (["observation", "invariant", "constraint"].includes(statement.kind)) {
         facts.set(key, { value: proposition.value, line: statement.line, kind: statement.kind, source: statement.source });
       }
     }
@@ -127,56 +127,75 @@ export function validateIntent(program: IntentProgram): ValidationResult {
   if (verification.length === 0) diagnostics.push({ severity: "warning", code: "W102", message: "program has no verification requirements" });
   if (done.length === 0) diagnostics.push({ severity: "warning", code: "W103", message: "program has no explicit completion conditions" });
 
-  // v0.3 legacy-statement semantic protection: a goal assigning a value directly against an invariant is a compile error.
+  // v0.3 legacy-statement semantic protection: goals violating invariants is a compile error (E201).
   for (const goal of goals) {
     for (const gp of goal.propositions) {
-      if (gp.value === undefined) continue;
       for (const invariant of invariants) {
         for (const ip of invariant.propositions) {
-          if (ip.path === gp.path && ip.value !== undefined && scalarKey(ip.value) !== scalarKey(gp.value)) {
-            diagnostics.push({
-              severity: "error",
-              code: "E201",
-              message: `goal '${gp.raw}' violates invariant '${ip.raw}'`,
-              line: goal.line,
-              source: goal.source,
-              relatedLine: invariant.line,
-              relatedSource: invariant.source
-            });
+          if (ip.path === gp.path) {
+            const hasConflict = gp.value !== undefined && ip.value !== undefined
+              ? scalarKey(ip.value) !== scalarKey(gp.value)
+              : (typeof ip.value === "string" ? FORBIDDEN_VALUES.has(ip.value.toLowerCase()) : ip.value === false);
+
+            if (hasConflict) {
+              diagnostics.push({
+                severity: "error",
+                code: "E201",
+                message: `goal '${gp.raw}' violates invariant '${ip.raw}'`,
+                line: goal.line,
+                source: goal.source,
+                relatedLine: invariant.line,
+                relatedSource: invariant.source
+              });
+            }
           }
         }
       }
     }
   }
 
-  // Canonical operations semantic protection: operations cannot violate declared or inherited invariants.
+  // Canonical operations semantic protection: operations cannot violate declared or inherited invariants (E202).
   if (program.semantics?.operations.length && invariants.length) {
     const entityMap = new Map<string, CanonicalEntity>(
       program.semantics.entities.map((e) => [e.id, e])
     );
 
     for (const operation of program.semantics.operations) {
-      if (!operation.target) continue;
-      const targetEntity = entityMap.get(operation.target);
-      if (!targetEntity) continue;
+      const affectedEntities: Array<{ entity: CanonicalEntity; role: string }> = [];
 
-      for (const invariant of invariants) {
-        for (const ip of invariant.propositions) {
-          const lastDot = ip.path.lastIndexOf(".");
-          if (lastDot <= 0) continue;
-          const subject = ip.path.slice(0, lastDot);
-          const rule = ip.path.slice(lastDot + 1);
+      if (operation.target) {
+        const targetEntity = entityMap.get(operation.target);
+        if (targetEntity) affectedEntities.push({ entity: targetEntity, role: "target" });
+      }
 
-          if (entityMatchesSubject(targetEntity, subject) && operationViolatesRule(operation.kind, rule, ip.value)) {
-            diagnostics.push({
-              severity: "error",
-              code: "E202",
-              message: `operation '${operation.id}' (${operation.kind}) violates invariant '${ip.raw}' on target '${operation.target}'`,
-              line: operation.line,
-              source: operation.source,
-              relatedLine: invariant.line,
-              relatedSource: invariant.source
-            });
+      for (const argument of operation.arguments) {
+        if ("entity" in argument && typeof argument.entity === "string") {
+          const argEntity = entityMap.get(argument.entity);
+          if (argEntity && ["related", "to", "with"].includes(argument.role)) {
+            affectedEntities.push({ entity: argEntity, role: argument.role });
+          }
+        }
+      }
+
+      for (const { entity, role } of affectedEntities) {
+        for (const invariant of invariants) {
+          for (const ip of invariant.propositions) {
+            const lastDot = ip.path.lastIndexOf(".");
+            if (lastDot <= 0) continue;
+            const subject = ip.path.slice(0, lastDot);
+            const rule = ip.path.slice(lastDot + 1);
+
+            if (entityMatchesSubject(entity, subject) && operationViolatesRule(operation.kind, rule, ip.value)) {
+              diagnostics.push({
+                severity: "error",
+                code: "E202",
+                message: `operation '${operation.id}' (${operation.kind}) violates invariant '${ip.raw}' on ${role} '${entity.id}'`,
+                line: operation.line,
+                source: operation.source,
+                relatedLine: invariant.line,
+                relatedSource: invariant.source
+              });
+            }
           }
         }
       }

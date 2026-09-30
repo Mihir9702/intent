@@ -62,6 +62,7 @@ export const OPERATION_SIGNATURES: Record<CanonicalOperationKind, OperationSigna
   },
   execute: {
     target: "required",
+    targetKinds: ["service", "system", "file", "resource"],
     arguments: [{ role: "input", type: "entity", repeatable: true }]
   }
 };

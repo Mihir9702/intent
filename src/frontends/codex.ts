@@ -50,11 +50,13 @@ export class CodexSemanticFrontend implements SemanticFrontend {
       const entry = appData
         ? join(appData, "npm", "node_modules", "@openai", "codex", "bin", "codex.js")
         : "";
-      if (!entry || !existsSync(entry)) {
-        throw new Error("Could not locate the Windows Codex CLI entrypoint");
+      if (entry && existsSync(entry)) {
+        this.command = process.execPath;
+        this.commandPrefix = [entry];
+      } else {
+        this.command = "codex";
+        this.commandPrefix = [];
       }
-      this.command = process.execPath;
-      this.commandPrefix = [entry];
     } else {
       this.command = "codex";
       this.commandPrefix = [];

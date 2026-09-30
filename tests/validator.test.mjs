@@ -164,3 +164,106 @@ test("allows read-only canonical operations (observe) on invariant-protected ent
   assert.equal(result.ok, true);
   assert.equal(result.diagnostics.some((d) => d.code === "E202"), false);
 });
+
+test("blocks conflicting constraints on the same proposition path (E117)", () => {
+  const result = validateIntent(
+    parseIntent("C{permission.enforce=server_side}\nC{permission.enforce=client_side}\nV{tests}\nDONE{tests=pass}")
+  );
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E117");
+  assert.ok(err, "expected E117 diagnostic on conflicting constraints");
+  assert.match(err.message, /conflicting constraint for 'permission\.enforce'/);
+});
+
+test("blocks bare goal proposition that violates an invariant (E201)", () => {
+  const result = validateIntent(
+    parseIntent("G{financial_history.rewrite}\nINV{financial_history.rewrite=never}\nV{tests}\nDONE{tests=pass}")
+  );
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E201");
+  assert.ok(err, "expected E201 diagnostic on bare goal violating invariant");
+});
+
+test("blocks operation when an entity argument is protected by invariant (E202 on related)", () => {
+  const program = {
+    version: "0.3",
+    statements: [
+      {
+        kind: "invariant",
+        propositions: [{ path: "audit_log.mutable", value: false, raw: "audit_log.mutable=false" }],
+        line: 1
+      },
+      {
+        kind: "verification",
+        propositions: [{ path: "v", raw: "v" }],
+        line: 2
+      },
+      {
+        kind: "done",
+        propositions: [{ path: "tests", value: "pass", raw: "tests=pass" }],
+        line: 3
+      }
+    ],
+    semantics: {
+      ontology: CORE_ONTOLOGY,
+      entities: [
+        { id: "order", kind: "record", resolution: "resolved" },
+        { id: "audit_log", kind: "record", resolution: "resolved" }
+      ],
+      operations: [
+        {
+          id: "unlink_audit",
+          kind: "unlink",
+          target: "order",
+          arguments: [{ role: "related", entity: "audit_log" }],
+          dependsOn: []
+        }
+      ]
+    }
+  };
+
+  const result = validateIntent(program);
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E202");
+  assert.ok(err, "expected E202 on unlinked argument");
+  assert.match(err.message, /on related 'audit_log'/);
+});
+
+test("rejects executing a non-executable entity kind like document (E417)", () => {
+  const program = {
+    version: "0.3",
+    statements: [
+      {
+        kind: "verification",
+        propositions: [{ path: "v", raw: "v" }],
+        line: 1
+      },
+      {
+        kind: "done",
+        propositions: [{ path: "tests", value: "pass", raw: "tests=pass" }],
+        line: 2
+      }
+    ],
+    semantics: {
+      ontology: CORE_ONTOLOGY,
+      entities: [
+        { id: "my_doc", kind: "document", resolution: "resolved" }
+      ],
+      operations: [
+        {
+          id: "exec_doc",
+          kind: "execute",
+          target: "my_doc",
+          arguments: [],
+          dependsOn: []
+        }
+      ]
+    }
+  };
+
+  const result = validateIntent(program);
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E417");
+  assert.ok(err, "expected E417 when executing document");
+});
+

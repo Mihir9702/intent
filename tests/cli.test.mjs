@@ -99,3 +99,32 @@ test("cli: validate with --inherit enforces project policy invariants", async ()
   }
   assert.equal(failed, true, "expected policy conflict to exit with code 1");
 });
+
+test("cli: --help exits with code 0", async () => {
+  const { stdout } = await exec(node, [cli, "--help"]);
+  assert.match(stdout, /Usage:/);
+});
+
+test("cli: accepts flags before positional file argument", async () => {
+  const { stdout } = await exec(node, [
+    cli,
+    "validate",
+    "--inherit",
+    "examples/project.intent",
+    "examples/customer-po.intent"
+  ]);
+  assert.match(stdout, /PASS — no diagnostics/);
+});
+
+test("cli: errors when flag argument is missing value", async () => {
+  let failed = false;
+  try {
+    await exec(node, [cli, "compile", "examples/canonical-replace.intent.json", "--target"]);
+  } catch (err) {
+    failed = true;
+    assert.equal(err.code, 1);
+    assert.match(err.stdout, /missing argument value for '--target'/);
+  }
+  assert.equal(failed, true, "expected error on missing flag value");
+});
+

@@ -149,8 +149,8 @@ function validateArgument(value: unknown, diagnostics: OntologyDiagnostic[]): vo
     });
   }
 
-  const hasEntity = Object.prototype.hasOwnProperty.call(value, "entity");
-  const hasValue = Object.prototype.hasOwnProperty.call(value, "value");
+  const hasEntity = Object.prototype.hasOwnProperty.call(value, "entity") && (value as Record<string, unknown>).entity !== undefined;
+  const hasValue = Object.prototype.hasOwnProperty.call(value, "value") && (value as Record<string, unknown>).value !== undefined;
   if (hasEntity === hasValue) {
     diagnostics.push({
       severity: "error",

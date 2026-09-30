@@ -20,7 +20,7 @@ interface ProcessResult {
 function runProcess(command: string, args: string[], stdin: string): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      shell: false,
+      shell: process.platform === "win32",
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"]
     });

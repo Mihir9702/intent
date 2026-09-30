@@ -6,7 +6,7 @@ Natural-language instructions are expressive, but they are also ambiguous. Inten
 
 > **AI interprets. Intent represents. Deterministic code validates. Tools execute. Independent evidence verifies.**
 
-**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 31 deterministic tests
+**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 50 deterministic tests
 
 Intent is experimental. It is not yet a production safety boundary or a replacement for tests, code review, authorization, or human judgment.
 
@@ -386,6 +386,7 @@ language:       0.3
 core ontology:  intent-core/0.1
 target adapters: Claude (XML), Codex (Markdown), compact, canonical JSON
 evaluations:    5/5 benchmark scenarios passing
+tests:          50 passing
 ```
 
 Intent is under active development. The next useful milestone is to evaluate the canonical representation against a larger set of real software-development instructions and measure whether it reduces missed constraints, silent assumptions, and model-to-model semantic drift.

@@ -128,10 +128,12 @@ export function parseIntent(source: string, name?: string): IntentProgram {
     while (i < source.length && /[ \t]/.test(source[i])) i++;
     if (source[i] === "^") {
       i++;
-      const confidenceMatch = source.slice(i).match(/^(?:0(?:\.\d+)?|1(?:\.0+)?|\.\d+)/);
-      if (!confidenceMatch) throw new IntentParseError("expected confidence between 0 and 1 after '^'", line);
-      confidence = Number(confidenceMatch[0]);
-      i += confidenceMatch[0].length;
+      const numMatch = source.slice(i).match(/^[^\s,;}]+/);
+      if (!numMatch || !/^(?:0(?:\.\d+)?|1(?:\.0+)?|\.\d+)$/.test(numMatch[0])) {
+        throw new IntentParseError("expected confidence between 0 and 1 after '^'", line);
+      }
+      confidence = Number(numMatch[0]);
+      i += numMatch[0].length;
     }
 
     let entries: string[];

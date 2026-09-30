@@ -19,10 +19,26 @@ async function load(file: string) {
     : parseIntent(source, file);
 }
 
+const FLAGS_WITH_VALUES = new Set([
+  "--inherit",
+  "--target",
+  "--via",
+  "--model",
+  "--effort",
+  "--format",
+  "--out"
+]);
+
 function valuesAfterAll(args: string[], flag: string): string[] {
   const values: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === flag && args[i + 1]) values.push(args[i + 1]);
+    if (args[i] === flag) {
+      const val = args[i + 1];
+      if (!val || val.startsWith("-")) {
+        throw new Error(`missing argument value for '${flag}'`);
+      }
+      values.push(val);
+    }
   }
   return values;
 }
@@ -63,7 +79,7 @@ function printDiagnostics(result: ReturnType<typeof validateIntent>, stderr = fa
   }
 }
 
-function usage(): never {
+function usage(code = 0): never {
   console.log(`Intent 0.3
 
 Usage:
@@ -77,7 +93,7 @@ Usage:
 
 --inherit may be repeated.
 translate never executes coding tools; it only proposes and validates Intent.`);
-  process.exitCode = 2;
+  process.exitCode = code;
   throw new Error("usage");
 }
 
@@ -130,9 +146,22 @@ async function translate(file: string, args: string[]) {
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length < 2 || args.includes("--help") || args.includes("-h")) usage();
+  if (args.includes("--help") || args.includes("-h")) usage(0);
 
-  const [command, file] = args;
+  const positionals: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (FLAGS_WITH_VALUES.has(arg)) {
+      i++;
+      continue;
+    }
+    if (arg.startsWith("-")) continue;
+    positionals.push(arg);
+  }
+
+  if (positionals.length < 2) usage(2);
+
+  const [command, file] = positionals;
 
   if (command === "translate") {
     await translate(file, args);
