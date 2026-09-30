@@ -23,17 +23,42 @@ const FORBIDDEN_VALUES = new Set(["never", "refuse", "forbidden", "deny", "disal
 
 function entityMatchesSubject(entity: CanonicalEntity, subject: string): boolean {
   const normSubject = subject.toLowerCase();
+
+  // Universal wildcard: * or *.* matches every entity
+  if (normSubject === "*" || normSubject === "*.*") return true;
+
+  // Prefix wildcard: e.g. "accounting.*" or "document.*"
+  if (normSubject.endsWith(".*")) {
+    const prefix = normSubject.slice(0, -2);
+    if (entity.kind.toLowerCase() === prefix || `${entity.kind.toLowerCase()}s` === prefix) return true;
+    if (entity.type) {
+      const normType = entity.type.toLowerCase();
+      if (normType === prefix || normType.startsWith(prefix + ".")) return true;
+    }
+    if (entity.id.toLowerCase().startsWith(prefix)) return true;
+    return false;
+  }
+
+  // Exact entity ID match
   if (entity.id.toLowerCase() === normSubject) return true;
 
+  // Entity kind match (singular and plural)
   const normKind = entity.kind.toLowerCase();
   if (normKind === normSubject || `${normKind}s` === normSubject) return true;
 
+  // Entity type match (exact, suffix, plural, and hierarchical prefix)
   if (entity.type) {
     const normType = entity.type.toLowerCase();
     if (normType === normSubject) return true;
     if (normType.endsWith(`.${normSubject}`)) return true;
     if (`${normType}s` === normSubject || `${normType}s`.endsWith(`.${normSubject}`)) return true;
+    if (normType.startsWith(normSubject + ".")) return true;
   }
+
+  // Separator normalization: allow underscore/dot equivalence
+  const unifiedId = entity.id.toLowerCase().replace(/[._-]/g, "_");
+  const unifiedSubject = normSubject.replace(/[._-]/g, "_");
+  if (unifiedId === unifiedSubject) return true;
 
   return false;
 }
@@ -119,6 +144,7 @@ export function validateIntent(program: IntentProgram): ValidationResult {
   const verification = program.statements.filter((s) => s.kind === "verification");
   const done = program.statements.filter((s) => s.kind === "done");
   const invariants = program.statements.filter((s) => s.kind === "invariant");
+  const constraints = program.statements.filter((s) => s.kind === "constraint");
 
   const hasCanonicalOperations = (program.semantics?.operations.length ?? 0) > 0;
   if (goals.length === 0 && !hasCanonicalOperations) {
@@ -127,25 +153,30 @@ export function validateIntent(program: IntentProgram): ValidationResult {
   if (verification.length === 0) diagnostics.push({ severity: "warning", code: "W102", message: "program has no verification requirements" });
   if (done.length === 0) diagnostics.push({ severity: "warning", code: "W103", message: "program has no explicit completion conditions" });
 
-  // v0.3 legacy-statement semantic protection: goals violating invariants is a compile error (E201).
+  const policies: Array<{ statement: (typeof program.statements)[number]; kind: "invariant" | "constraint"; opCode: string; goalCode: string; label: string }> = [
+    ...invariants.map((s) => ({ statement: s, kind: "invariant" as const, opCode: "E202", goalCode: "E201", label: "invariant" })),
+    ...constraints.map((s) => ({ statement: s, kind: "constraint" as const, opCode: "E203", goalCode: "E204", label: "constraint" }))
+  ];
+
+  // Semantic protection: goals violating invariants (E201) or constraints (E204).
   for (const goal of goals) {
     for (const gp of goal.propositions) {
-      for (const invariant of invariants) {
-        for (const ip of invariant.propositions) {
-          if (ip.path === gp.path) {
-            const hasConflict = gp.value !== undefined && ip.value !== undefined
-              ? scalarKey(ip.value) !== scalarKey(gp.value)
-              : (typeof ip.value === "string" ? FORBIDDEN_VALUES.has(ip.value.toLowerCase()) : ip.value === false);
+      for (const policy of policies) {
+        for (const pp of policy.statement.propositions) {
+          if (pp.path === gp.path) {
+            const hasConflict = gp.value !== undefined && pp.value !== undefined
+              ? scalarKey(pp.value) !== scalarKey(gp.value)
+              : (typeof pp.value === "string" ? FORBIDDEN_VALUES.has(pp.value.toLowerCase()) : pp.value === false);
 
             if (hasConflict) {
               diagnostics.push({
                 severity: "error",
-                code: "E201",
-                message: `goal '${gp.raw}' violates invariant '${ip.raw}'`,
+                code: policy.goalCode,
+                message: `goal '${gp.raw}' violates ${policy.label} '${pp.raw}'`,
                 line: goal.line,
                 source: goal.source,
-                relatedLine: invariant.line,
-                relatedSource: invariant.source
+                relatedLine: policy.statement.line,
+                relatedSource: policy.statement.source
               });
             }
           }
@@ -154,8 +185,8 @@ export function validateIntent(program: IntentProgram): ValidationResult {
     }
   }
 
-  // Canonical operations semantic protection: operations cannot violate declared or inherited invariants (E202).
-  if (program.semantics?.operations.length && invariants.length) {
+  // Canonical operations semantic protection: operations cannot violate declared or inherited invariants (E202) or constraints (E203).
+  if (program.semantics?.operations.length && policies.length) {
     const entityMap = new Map<string, CanonicalEntity>(
       program.semantics.entities.map((e) => [e.id, e])
     );
@@ -178,22 +209,22 @@ export function validateIntent(program: IntentProgram): ValidationResult {
       }
 
       for (const { entity, role } of affectedEntities) {
-        for (const invariant of invariants) {
-          for (const ip of invariant.propositions) {
-            const lastDot = ip.path.lastIndexOf(".");
+        for (const policy of policies) {
+          for (const pp of policy.statement.propositions) {
+            const lastDot = pp.path.lastIndexOf(".");
             if (lastDot <= 0) continue;
-            const subject = ip.path.slice(0, lastDot);
-            const rule = ip.path.slice(lastDot + 1);
+            const subject = pp.path.slice(0, lastDot);
+            const rule = pp.path.slice(lastDot + 1);
 
-            if (entityMatchesSubject(entity, subject) && operationViolatesRule(operation.kind, rule, ip.value)) {
+            if (entityMatchesSubject(entity, subject) && operationViolatesRule(operation.kind, rule, pp.value)) {
               diagnostics.push({
                 severity: "error",
-                code: "E202",
-                message: `operation '${operation.id}' (${operation.kind}) violates invariant '${ip.raw}' on ${role} '${entity.id}'`,
+                code: policy.opCode,
+                message: `operation '${operation.id}' (${operation.kind}) violates ${policy.label} '${pp.raw}' on ${role} '${entity.id}'`,
                 line: operation.line,
                 source: operation.source,
-                relatedLine: invariant.line,
-                relatedSource: invariant.source
+                relatedLine: policy.statement.line,
+                relatedSource: policy.statement.source
               });
             }
           }

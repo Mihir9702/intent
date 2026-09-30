@@ -17,3 +17,5 @@ export * from "./renderers/english.js";
 export * from "./renderers/compact.js";
 export * from "./renderers/claude.js";
 export * from "./renderers/codex.js";
+export * from "./verifier.js";
+export * from "./diff.js";

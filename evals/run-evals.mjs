@@ -5,6 +5,7 @@ import { validateIntent } from "../dist/src/validator.js";
 import { applyInheritedPolicies } from "../dist/src/project.js";
 import { renderClaude } from "../dist/src/renderers/claude.js";
 import { renderCodex } from "../dist/src/renderers/codex.js";
+import { verifyEvidence } from "../dist/src/verifier.js";
 
 async function load(file) {
   const source = await readFile(file, "utf8");
@@ -59,6 +60,19 @@ async function run() {
       try {
         const md = renderCodex(program);
         if (!md.includes("# Intent Execution Specification")) scenarioOk = false;
+      } catch {
+        scenarioOk = false;
+      }
+    }
+
+    if (s.evidence) {
+      try {
+        const evidenceRaw = await readFile(s.evidence, "utf8");
+        const evidence = JSON.parse(evidenceRaw);
+        const report = verifyEvidence(program, evidence);
+        if (report.ok !== s.expectedVerificationOk) {
+          scenarioOk = false;
+        }
       } catch {
         scenarioOk = false;
       }

@@ -11,6 +11,8 @@ import { renderEnglish } from "./renderers/english.js";
 import { renderClaude } from "./renderers/claude.js";
 import { renderCodex } from "./renderers/codex.js";
 import { renderCompact } from "./renderers/compact.js";
+import { verifyEvidence, formatVerificationReport } from "./verifier.js";
+import { diffPrograms, formatProgramDiff } from "./diff.js";
 
 async function load(file: string) {
   const source = await readFile(file, "utf8");
@@ -26,7 +28,8 @@ const FLAGS_WITH_VALUES = new Set([
   "--model",
   "--effort",
   "--format",
-  "--out"
+  "--out",
+  "--evidence"
 ]);
 
 function valuesAfterAll(args: string[], flag: string): string[] {
@@ -87,6 +90,8 @@ Usage:
   intent validate <file> [--inherit policy.intent]
   intent check <file> [--inherit policy.intent]
   intent explain <file> [--inherit policy.intent]
+  intent diff <file1> <file2> [--inherit policy.intent] [--json]
+  intent verify <file> --evidence <evidence.json> [--inherit policy.intent] [--json]
   intent compile <file> [--inherit policy.intent] [--target claude|codex|json|compact] [--out path]
   intent translate <english.txt> --via claude|codex [--model name] [--effort high]
                    [--inherit policy.intent] [--format json|explain] [--out path]
@@ -165,6 +170,40 @@ async function main() {
 
   if (command === "translate") {
     await translate(file, args);
+    return;
+  }
+
+  if (command === "diff") {
+    if (positionals.length < 3) usage(2);
+    const file1 = positionals[1];
+    const file2 = positionals[2];
+    const programA = await loadWithPolicies(file1, args);
+    const programB = await loadWithPolicies(file2, args);
+    const diff = diffPrograms(programA, programB);
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(diff, null, 2));
+    } else {
+      console.log(formatProgramDiff(diff));
+    }
+    if (diff.breaking) process.exitCode = 1;
+    return;
+  }
+
+  if (command === "verify") {
+    const evidencePath = valueAfter(args, "--evidence");
+    if (!evidencePath) {
+      throw new Error("verify requires '--evidence <path>'");
+    }
+    const evidenceRaw = await readFile(evidencePath, "utf8");
+    const evidence = JSON.parse(evidenceRaw);
+    const program = await loadWithPolicies(file, args);
+    const report = verifyEvidence(program, evidence);
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log(formatVerificationReport(report));
+    }
+    if (!report.ok) process.exitCode = 1;
     return;
   }
 

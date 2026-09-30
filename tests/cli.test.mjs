@@ -128,3 +128,63 @@ test("cli: errors when flag argument is missing value", async () => {
   assert.equal(failed, true, "expected error on missing flag value");
 });
 
+test("cli: diff computes semantic AST delta between programs", async () => {
+  const { stdout } = await exec(node, [
+    cli,
+    "diff",
+    "examples/canonical-replace.intent.json",
+    "examples/ambiguous-replace-delete.intent.json"
+  ]);
+  assert.match(stdout, /INTENT SEMANTIC AST DIFF/);
+  assert.match(stdout, /@old_one/);
+  assert.match(stdout, /\[delete_old\]/);
+});
+
+test("cli: diff --json outputs structured diff", async () => {
+  const { stdout } = await exec(node, [
+    cli,
+    "diff",
+    "examples/canonical-replace.intent.json",
+    "examples/ambiguous-replace-delete.intent.json",
+    "--json"
+  ]);
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.identical, false);
+  assert.equal(parsed.entities.some((e) => e.id === "old_one"), true);
+});
+
+test("cli: verify validates execution evidence against intent specification", async () => {
+  const { stdout } = await exec(node, [
+    cli,
+    "verify",
+    "examples/canonical-replace.intent.json",
+    "--evidence",
+    "examples/evidence-verified.json"
+  ]);
+  assert.match(stdout, /INTENT INDEPENDENT VERIFICATION REPORT/);
+  assert.match(stdout, /VERIFIED \(ALL CHECKS PASSED\)/);
+  assert.match(stdout, /Verification Certificate:/);
+});
+
+test("cli: verify detects policy violations in evidence and exits with code 1", async () => {
+  let failed = false;
+  try {
+    await exec(node, [
+      cli,
+      "verify",
+      "examples/canonical-replace.intent.json",
+      "--inherit",
+      "examples/project.intent",
+      "--evidence",
+      "examples/evidence-violated.json"
+    ]);
+  } catch (err) {
+    failed = true;
+    assert.equal(err.code, 1);
+    assert.match(err.stdout, /FAILED \/ INCOMPLETE/);
+    assert.match(err.stdout, /INV-001/);
+  }
+  assert.equal(failed, true, "expected verification failure on violated evidence");
+});
+
+

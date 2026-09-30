@@ -196,3 +196,59 @@ test("warns when replacement subtype compatibility cannot be proven", () => {
   assert.equal(diagnostics.some((d) => d.code === "W402"), true);
   assert.equal(diagnostics.some((d) => d.code === "E415"), false);
 });
+
+test("allows replacement with a valid hierarchical subtype", () => {
+  const diagnostics = typeCheckSemantics({
+    ontology: CORE_ONTOLOGY,
+    entities: [
+      { id: "invoice", kind: "record", type: "accounting.invoice", resolution: "resolved" },
+      { id: "vat_invoice", kind: "record", type: "accounting.invoice.vat", resolution: "resolved" }
+    ],
+    operations: [{
+      id: "replace_invoice",
+      kind: "replace",
+      target: "invoice",
+      arguments: [{ role: "with", entity: "vat_invoice" }],
+      dependsOn: []
+    }]
+  });
+  assert.deepEqual(diagnostics.filter((d) => d.severity === "error"), []);
+  assert.equal(diagnostics.some((d) => d.code === "W402"), false);
+});
+
+test("rejects replacement with a less specific supertype", () => {
+  const diagnostics = typeCheckSemantics({
+    ontology: CORE_ONTOLOGY,
+    entities: [
+      { id: "vat_invoice", kind: "record", type: "accounting.invoice.vat", resolution: "resolved" },
+      { id: "invoice", kind: "record", type: "accounting.invoice", resolution: "resolved" }
+    ],
+    operations: [{
+      id: "replace_vat",
+      kind: "replace",
+      target: "vat_invoice",
+      arguments: [{ role: "with", entity: "invoice" }],
+      dependsOn: []
+    }]
+  });
+  assert.equal(diagnostics.some((d) => d.code === "E415"), true);
+});
+
+test("rejects moving an entity to an actor (E416)", () => {
+  const diagnostics = typeCheckSemantics({
+    ontology: CORE_ONTOLOGY,
+    entities: [
+      { id: "doc", kind: "document", resolution: "resolved" },
+      { id: "user", kind: "actor", resolution: "resolved" }
+    ],
+    operations: [{
+      id: "move_doc",
+      kind: "move",
+      target: "doc",
+      arguments: [{ role: "to", entity: "user" }],
+      dependsOn: []
+    }]
+  });
+  assert.equal(diagnostics.some((d) => d.code === "E416"), true);
+});
+

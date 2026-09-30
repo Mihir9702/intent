@@ -267,3 +267,125 @@ test("rejects executing a non-executable entity kind like document (E417)", () =
   assert.ok(err, "expected E417 when executing document");
 });
 
+test("blocks delete operation when universal wildcard invariant *.delete=never is present (E202)", () => {
+  const program = {
+    version: "0.3",
+    statements: [
+      {
+        kind: "invariant",
+        propositions: [{ path: "*.delete", value: "never", raw: "*.delete=never" }],
+        line: 1
+      },
+      {
+        kind: "verification",
+        propositions: [{ path: "v", raw: "v" }],
+        line: 2
+      },
+      {
+        kind: "done",
+        propositions: [{ path: "d", raw: "d" }],
+        line: 3
+      }
+    ],
+    semantics: {
+      ontology: CORE_ONTOLOGY,
+      entities: [
+        { id: "some_temp_file", kind: "file", resolution: "resolved" }
+      ],
+      operations: [
+        {
+          id: "delete_file",
+          kind: "delete",
+          target: "some_temp_file",
+          arguments: [],
+          dependsOn: []
+        }
+      ]
+    }
+  };
+
+  const result = validateIntent(program);
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E202");
+  assert.ok(err, "expected E202 when wildcard invariant matches");
+  assert.match(err.message, /violates invariant '\*\.delete=never'/);
+});
+
+test("blocks operation when operational constraint forbids action (E203)", () => {
+  const program = {
+    version: "0.3",
+    statements: [
+      {
+        kind: "constraint",
+        propositions: [{ path: "invoiced_line.action", value: "refuse", raw: "invoiced_line.action=refuse" }],
+        line: 1
+      },
+      {
+        kind: "verification",
+        propositions: [{ path: "v", raw: "v" }],
+        line: 2
+      },
+      {
+        kind: "done",
+        propositions: [{ path: "d", raw: "d" }],
+        line: 3
+      }
+    ],
+    semantics: {
+      ontology: CORE_ONTOLOGY,
+      entities: [
+        { id: "invoiced_line", kind: "record", resolution: "resolved" }
+      ],
+      operations: [
+        {
+          id: "update_line",
+          kind: "update",
+          target: "invoiced_line",
+          arguments: [],
+          dependsOn: []
+        }
+      ]
+    }
+  };
+
+  const result = validateIntent(program);
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E203");
+  assert.ok(err, "expected E203 on constraint violation");
+  assert.match(err.message, /violates constraint 'invoiced_line\.action=refuse'/);
+});
+
+test("blocks goal that directly violates an operational constraint (E204)", () => {
+  const program = {
+    version: "0.3",
+    statements: [
+      {
+        kind: "constraint",
+        propositions: [{ path: "auth.enabled", value: false, raw: "auth.enabled=false" }],
+        line: 1
+      },
+      {
+        kind: "goal",
+        propositions: [{ path: "auth.enabled", value: true, raw: "auth.enabled=true" }],
+        line: 2
+      },
+      {
+        kind: "verification",
+        propositions: [{ path: "v", raw: "v" }],
+        line: 3
+      },
+      {
+        kind: "done",
+        propositions: [{ path: "d", raw: "d" }],
+        line: 4
+      }
+    ]
+  };
+
+  const result = validateIntent(program);
+  assert.equal(result.ok, false);
+  const err = result.diagnostics.find((d) => d.code === "E204");
+  assert.ok(err, "expected E204 on goal violating constraint");
+});
+
+

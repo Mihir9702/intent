@@ -25,11 +25,20 @@ function scalarMatches(value: unknown, spec: ArgumentSpec): boolean {
 
 type Compatibility = "compatible" | "incompatible" | "unknown";
 
-function compatibility(a: CanonicalEntity, b: CanonicalEntity): Compatibility {
-  if (a.kind === "unknown" || b.kind === "unknown") return "unknown";
-  if (a.kind !== b.kind) return "incompatible";
-  if (a.type && b.type) return a.type === b.type ? "compatible" : "incompatible";
-  if (a.type || b.type) return "unknown";
+function isSubtype(derived: string, base: string): boolean {
+  if (derived === base) return true;
+  return derived.startsWith(base + ".");
+}
+
+function compatibility(target: CanonicalEntity, replacement: CanonicalEntity): Compatibility {
+  if (target.kind === "unknown" || replacement.kind === "unknown") return "unknown";
+  if (target.kind !== replacement.kind) return "incompatible";
+  if (target.type && replacement.type) {
+    if (target.type === replacement.type) return "compatible";
+    if (isSubtype(replacement.type, target.type)) return "compatible";
+    return "incompatible";
+  }
+  if (target.type || replacement.type) return "unknown";
   return "compatible";
 }
 

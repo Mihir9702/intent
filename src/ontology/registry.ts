@@ -36,7 +36,12 @@ export const OPERATION_SIGNATURES: Record<CanonicalOperationKind, OperationSigna
       { role: "value", type: "scalar", scalarType: "any", required: true }
     ]
   },
-  delete: { target: "required", arguments: NO_ARGS, destructive: true },
+  delete: {
+    target: "required",
+    targetKinds: ["document", "record", "collection", "file", "resource"],
+    arguments: NO_ARGS,
+    destructive: true
+  },
   replace: {
     target: "required",
     arguments: [{ role: "with", type: "entity", required: true }],
@@ -54,11 +59,25 @@ export const OPERATION_SIGNATURES: Record<CanonicalOperationKind, OperationSigna
   },
   move: {
     target: "required",
-    arguments: [{ role: "to", type: "entity", required: true }]
+    arguments: [
+      {
+        role: "to",
+        type: "entity",
+        required: true,
+        entityKinds: ["collection", "file", "system", "service", "resource"]
+      }
+    ]
   },
   copy: {
     target: "required",
-    arguments: [{ role: "to", type: "entity", required: true }]
+    arguments: [
+      {
+        role: "to",
+        type: "entity",
+        required: true,
+        entityKinds: ["collection", "file", "system", "service", "resource"]
+      }
+    ]
   },
   execute: {
     target: "required",

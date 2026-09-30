@@ -6,7 +6,7 @@ Natural-language instructions are expressive, but they are also ambiguous. Inten
 
 > **AI interprets. Intent represents. Deterministic code validates. Tools execute. Independent evidence verifies.**
 
-**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 50 deterministic tests
+**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 67 deterministic tests · 12 benchmark evaluations
 
 Intent is experimental. It is not yet a production safety boundary or a replacement for tests, code review, authorization, or human judgment.
 
@@ -290,23 +290,50 @@ node dist\src\cli.js translate task.txt --via claude --model opus --format json
 
 Provider/model availability depends on the authenticated account and CLI. A model name being accepted in local configuration does not guarantee that the provider will permit inference with that account.
 
+## Semantic AST Diff
+
+Compare revisions of Intent specifications to identify added or removed entities, altered operation plans, or breaking policy changes:
+
+```powershell
+node dist\src\cli.js diff task-v1.intent.json task-v2.intent.json
+node dist\src\cli.js diff task-v1.intent.json task-v2.intent.json --json
+```
+
+## Closed-Loop Independent Verification
+
+Realizing the fifth pillar: *"Independent evidence verifies."*
+
+```powershell
+node dist\src\cli.js verify spec.intent.json --evidence evidence.json
+```
+
+Intent ingests execution evidence (file modifications/deletions, command exit codes, test outputs, observed state facts) and mathematically checks:
+1. Did the execution violate any declared or inherited project invariants?
+2. Were all verification requirements (`V{}`) observed and proven?
+3. Were all completion conditions (`D{}`) satisfied?
+
+If successful, a cryptographically signed verification certificate (SHA-256 digest) is generated. If any invariant is violated or completion condition is unsatisfied, the command fails and pinpoints the exact cause.
+
 ## What the type system checks
 
 The current deterministic ontology layer checks, among other things:
 
-- unresolved entities referenced by operations;
-- unknown entity and operation references;
-- invalid or provider-invented argument roles;
-- missing required operation arguments;
-- entity-vs-scalar argument mismatches;
-- incompatible replacement types;
-- namespaced domain-type syntax;
-- unknown/self operation dependencies;
-- operation dependency cycles;
-- source provenance bounds;
-- inherited project invariants over goals (E201) and operations (E202).
+- unresolved entities referenced by operations (E403);
+- unknown entity and operation references (E408, E412);
+- invalid or provider-invented argument roles (E409);
+- missing required operation arguments (E414);
+- entity-vs-scalar argument mismatches (E411);
+- hierarchical domain-type subtyping and replacement compatibility (E415);
+- non-executable entity kinds targeted by `execute` (E417);
+- invalid entity kinds for destination roles like `move` and `copy` (E416);
+- namespaced domain-type syntax (E427);
+- unknown/self operation dependencies (E424, E425);
+- operation dependency cycles (E426);
+- source provenance bounds (E393);
+- universal (`*`), prefix, and hierarchical invariant and constraint enforcement over goals (E201, E204) and operations (E202, E203);
+- conflicting security constraints on proposition paths (E117).
 
-When replacement compatibility cannot be proven from available type information, Intent warns instead of pretending compatibility is known.
+When replacement compatibility cannot be proven from available type information, Intent warns (W402) instead of pretending compatibility is known.
 
 ## Repository structure
 

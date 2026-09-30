@@ -154,5 +154,218 @@
     "expectedOk": true,
     "expectedDiagnostics": [],
     "testCompilers": ["claude", "codex", "json"]
+  },
+  {
+    "id": "EVAL-06",
+    "name": "Hierarchical Subtype Replacement Validation",
+    "description": "Replacing a base domain type (accounting.invoice) with a specialized subtype (accounting.invoice.vat). Subtyping system must accept this cleanly.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "accounting.audited", "raw": "accounting.audited" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "tests", "value": "pass", "raw": "tests=pass" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "standard_inv", "kind": "record", "type": "accounting.invoice", "resolution": "resolved" },
+          { "id": "vat_inv", "kind": "record", "type": "accounting.invoice.vat", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "upgrade_invoice",
+            "kind": "replace",
+            "target": "standard_inv",
+            "arguments": [{ "role": "with", "entity": "vat_inv" }],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "expectedOk": true,
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "EVAL-07",
+    "name": "Unlink Argument Invariant Protection",
+    "description": "Unlinking an entity from an audit log protected by historical immutability invariant. The target is an order, but argument 'related' is protected audit_log.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "invariant",
+          "propositions": [{ "path": "audit_log.mutable", "value": false, "raw": "audit_log.mutable=false" }],
+          "line": 1
+        },
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 2
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 3
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "sales_order", "kind": "record", "resolution": "resolved" },
+          { "id": "audit_log", "kind": "record", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "unlink_from_audit",
+            "kind": "unlink",
+            "target": "sales_order",
+            "arguments": [{ "role": "related", "entity": "audit_log" }],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E202"]
+  },
+  {
+    "id": "EVAL-08",
+    "name": "Execute Non-Executable Entity Rejection",
+    "description": "Attempt to execute an entity with kind 'document'. The compiler must enforce executable kind restrictions with E417.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "readme_doc", "kind": "document", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "run_readme",
+            "kind": "execute",
+            "target": "readme_doc",
+            "arguments": [],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E417"]
+  },
+  {
+    "id": "EVAL-09",
+    "name": "Conflicting Security Constraints Rejection",
+    "description": "Program contains mutually contradictory security constraints: server_side vs client_side enforcement on permission_checks. E117 must be emitted.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "constraint",
+          "propositions": [{ "path": "permission_checks.enforcement", "value": "server_side", "raw": "permission_checks.enforcement=server_side" }],
+          "line": 1
+        },
+        {
+          "kind": "constraint",
+          "propositions": [{ "path": "permission_checks.enforcement", "value": "client_side", "raw": "permission_checks.enforcement=client_side" }],
+          "line": 2
+        },
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 3
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 4
+        }
+      ]
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E117"]
+  },
+  {
+    "id": "EVAL-10",
+    "name": "Universal Wildcard Invariant Protection",
+    "description": "Policy defines universal wildcard invariant *.delete=never. Any delete operation targeting any entity kind must be caught and blocked.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "invariant",
+          "propositions": [{ "path": "*.delete", "value": "never", "raw": "*.delete=never" }],
+          "line": 1
+        },
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 2
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 3
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "scratch_buffer", "kind": "resource", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "cleanup_scratch",
+            "kind": "delete",
+            "target": "scratch_buffer",
+            "arguments": [],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E202"]
+  },
+  {
+    "id": "EVAL-11",
+    "name": "Closed-Loop Independent Verification Success",
+    "description": "Execution evidence satisfies all declared verification conditions and completion criteria without invariant violations. Verifier must pass and generate cryptographic certificate.",
+    "input": "examples/canonical-replace.intent.json",
+    "evidence": "examples/evidence-verified.json",
+    "expectedOk": true,
+    "expectedDiagnostics": [],
+    "expectedVerificationOk": true
+  },
+  {
+    "id": "EVAL-12",
+    "name": "Independent Verification Blocks Rogue Agent Violation",
+    "description": "Agent modified/deleted an invariant-protected financial history log during execution. Independent evidence verification must detect the violation and halt pipeline.",
+    "input": "examples/canonical-replace.intent.json",
+    "inherit": ["examples/project.intent"],
+    "evidence": "examples/evidence-violated.json",
+    "expectedOk": true,
+    "expectedDiagnostics": [],
+    "expectedVerificationOk": false
   }
 ]

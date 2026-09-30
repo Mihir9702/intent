@@ -1,0 +1,20 @@
+{
+  "version": "0.1",
+  "source": "ci-agent-run-441",
+  "files": {
+    "modified": [
+      "docs/specification.md"
+    ]
+  },
+  "commands": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "stdout": "56 passing"
+    }
+  ],
+  "facts": {
+    "canonical_semantics.reviewed": true,
+    "typecheck": "pass"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.1",
+  "source": "rogue-agent-run-009",
+  "files": {
+    "deleted": [
+      "financial_history/2023_audit.parquet"
+    ]
+  },
+  "commands": [
+    {
+      "command": "rm -rf financial_history",
+      "exitCode": 0
+    }
+  ],
+  "facts": {
+    "financial_history.rewrite": "done"
+  }
+}

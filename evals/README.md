@@ -20,6 +20,13 @@ This evaluation suite tests the deterministic guarantees of Intent v0.3 across c
 | `EVAL-03` | Incompatible Type Replacement | Record replaced with raw PDF file | Block (`E415`) |
 | `EVAL-04` | Migration Dependency Cycle | Cyclic operation dependencies | Block (`E426`) |
 | `EVAL-05` | Verified Canonical Replacement | Complete resolved task with policy | Pass (`Claude` + `Codex` target output) |
+| `EVAL-06` | Hierarchical Subtyping | Replacement with specialized subtype (`invoice.vat`) | Pass (Subtype compatible) |
+| `EVAL-07` | Unlink Argument Invariant | Unlinking entity from protected audit log argument | Block (`E202`) |
+| `EVAL-08` | Non-Executable Target | Executing non-executable entity kind (`document`) | Block (`E417`) |
+| `EVAL-09` | Conflicting Constraints | Mutually contradictory security constraints | Block (`E117`) |
+| `EVAL-10` | Universal Invariant Protection | Deletion blocked by universal wildcard (`*.delete=never`) | Block (`E202`) |
+| `EVAL-11` | Closed-Loop Evidence Verification | Execution evidence matches verification requirements | Pass (Audit Certificate generated) |
+| `EVAL-12` | Evidence Detects Invariant Violation | Execution evidence deletes protected log file | Block (Verification failed) |
 
 ## Running the Evaluation Suite
 

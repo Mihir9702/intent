@@ -12,7 +12,7 @@ const KINDS = new Set([
   "done"
 ]);
 
-const PATH = /^[A-Za-z_][A-Za-z0-9_.:-]*$/;
+const PATH = /^[A-Za-z_*][A-Za-z0-9_.:*-]*$/;
 
 function isScalar(value: unknown): boolean {
   return value === null || ["string", "number", "boolean"].includes(typeof value);
