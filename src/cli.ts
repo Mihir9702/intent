@@ -13,6 +13,7 @@ import { renderCodex } from "./renderers/codex.js";
 import { renderCompact } from "./renderers/compact.js";
 import { verifyEvidence, formatVerificationReport } from "./verifier.js";
 import { diffPrograms, formatProgramDiff } from "./diff.js";
+import { superviseProcess } from "./supervisor.js";
 
 async function load(file: string) {
   const source = await readFile(file, "utf8");
@@ -29,7 +30,8 @@ const FLAGS_WITH_VALUES = new Set([
   "--effort",
   "--format",
   "--out",
-  "--evidence"
+  "--evidence",
+  "--watch"
 ]);
 
 function valuesAfterAll(args: string[], flag: string): string[] {
@@ -92,6 +94,7 @@ Usage:
   intent explain <file> [--inherit policy.intent]
   intent diff <file1> <file2> [--inherit policy.intent] [--json]
   intent verify <file> --evidence <evidence.json> [--inherit policy.intent] [--json]
+  intent supervise <file> [--watch dir] [--inherit policy.intent] -- <command...>
   intent compile <file> [--inherit policy.intent] [--target claude|codex|json|compact] [--out path]
   intent translate <english.txt> --via claude|codex [--model name] [--effort high]
                    [--inherit policy.intent] [--format json|explain] [--out path]
@@ -204,6 +207,28 @@ async function main() {
       console.log(formatVerificationReport(report));
     }
     if (!report.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command === "supervise") {
+    const dashDashIndex = args.indexOf("--");
+    if (dashDashIndex === -1 || dashDashIndex === args.length - 1) {
+      throw new Error("supervise requires '-- <command...>'");
+    }
+    const cmdArgs = args.slice(dashDashIndex + 1);
+    const cmd = cmdArgs[0];
+    const subArgs = cmdArgs.slice(1);
+    const watchDir = valueAfter(args.slice(0, dashDashIndex), "--watch");
+    const program = await loadWithPolicies(file, args.slice(0, dashDashIndex));
+    const supervised = await superviseProcess(program, cmd, subArgs, { watchDir });
+
+    if (supervised.stdout) process.stdout.write(supervised.stdout);
+    if (supervised.stderr) process.stderr.write(supervised.stderr);
+
+    console.log(formatVerificationReport(supervised.verification));
+    if (!supervised.verification.ok || supervised.exitCode !== 0) {
+      process.exitCode = supervised.exitCode !== 0 ? supervised.exitCode : 1;
+    }
     return;
   }
 

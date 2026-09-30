@@ -19,3 +19,7 @@ export * from "./renderers/claude.js";
 export * from "./renderers/codex.js";
 export * from "./verifier.js";
 export * from "./diff.js";
+export * from "./simulator.js";
+export * from "./supervisor.js";
+
+

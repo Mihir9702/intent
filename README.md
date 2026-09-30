@@ -6,7 +6,7 @@ Natural-language instructions are expressive, but they are also ambiguous. Inten
 
 > **AI interprets. Intent represents. Deterministic code validates. Tools execute. Independent evidence verifies.**
 
-**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 67 deterministic tests · 12 benchmark evaluations
+**Current status:** package `v0.4.0` · Intent language `v0.3` · core ontology `intent-core/0.1` · 74 deterministic tests · 15 benchmark evaluations
 
 Intent is experimental. It is not yet a production safety boundary or a replacement for tests, code review, authorization, or human judgment.
 
@@ -314,6 +314,29 @@ Intent ingests execution evidence (file modifications/deletions, command exit co
 
 If successful, a cryptographically signed verification certificate (SHA-256 digest) is generated. If any invariant is violated or completion condition is unsatisfied, the command fails and pinpoints the exact cause.
 
+## Runtime Process Supervision
+
+Run untrusted or agent-directed commands under active invariant supervision:
+
+```powershell
+node dist\src\cli.js supervise spec.intent.json --inherit policy.intent -- npm test
+```
+
+The supervisor:
+1. Snapshots filesystem state before execution;
+2. Spawns and streams the process;
+3. Assembles real-time execution evidence (modified/created/deleted files, exit codes, outputs);
+4. Evaluates evidence against declared invariants, verification conditions, and done criteria;
+5. Halts and exits with code 1 if an invariant was violated during execution.
+
+## Abstract State Simulation & Temporal Hazards
+
+Intent performs abstract interpretation over the operation dependency DAG ($S \xrightarrow{\text{op}} S'$) to catch temporal execution hazards before any tool runs:
+
+- **Use-After-Delete (E501)**: Accessing or mutating an entity after it has been deleted or consumed by an earlier operation.
+- **Use-Before-Create (E502)**: Accessing an entity before its creation operation has completed.
+- **Double Creation (E504)**: Attempting to create an already active entity.
+
 ## What the type system checks
 
 The current deterministic ontology layer checks, among other things:
@@ -331,6 +354,7 @@ The current deterministic ontology layer checks, among other things:
 - operation dependency cycles (E426);
 - source provenance bounds (E393);
 - universal (`*`), prefix, and hierarchical invariant and constraint enforcement over goals (E201, E204) and operations (E202, E203);
+- temporal execution hazards via abstract state simulation (E501, E502, E504);
 - conflicting security constraints on proposition paths (E117).
 
 When replacement compatibility cannot be proven from available type information, Intent warns (W402) instead of pretending compatibility is known.

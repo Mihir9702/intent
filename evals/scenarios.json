@@ -367,5 +367,137 @@
     "expectedOk": true,
     "expectedDiagnostics": [],
     "expectedVerificationOk": false
+  },
+  {
+    "id": "EVAL-13",
+    "name": "Temporal Use-After-Delete Hazard Detection",
+    "description": "Operation plan contains an operation that attempts to modify an entity after it has been deleted by an antecedent operation. Abstract interpretation simulation must catch E501.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "stale_doc", "kind": "document", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "delete_step",
+            "kind": "delete",
+            "target": "stale_doc",
+            "arguments": [],
+            "dependsOn": []
+          },
+          {
+            "id": "modify_step",
+            "kind": "update",
+            "target": "stale_doc",
+            "arguments": [],
+            "dependsOn": ["delete_step"]
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E501"]
+  },
+  {
+    "id": "EVAL-14",
+    "name": "Temporal Use-Before-Create Hazard Detection",
+    "description": "Operation plan contains an operation that attempts to access an unborn entity before its create operation executes. Abstract interpretation simulation must catch E502.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "unborn_record", "kind": "record", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "read_step",
+            "kind": "observe",
+            "target": "unborn_record",
+            "arguments": [],
+            "dependsOn": []
+          },
+          {
+            "id": "create_step",
+            "kind": "create",
+            "target": "unborn_record",
+            "arguments": [],
+            "dependsOn": ["read_step"]
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E502"]
+  },
+  {
+    "id": "EVAL-15",
+    "name": "Double Creation Hazard Detection",
+    "description": "Operation plan contains duplicate creation operations targeting the same entity id. Abstract interpretation simulation must catch E504.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "v", "raw": "v" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "d", "raw": "d" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "resource_node", "kind": "resource", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "init_res",
+            "kind": "create",
+            "target": "resource_node",
+            "arguments": [],
+            "dependsOn": []
+          },
+          {
+            "id": "reinit_res",
+            "kind": "create",
+            "target": "resource_node",
+            "arguments": [],
+            "dependsOn": ["init_res"]
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E504"]
   }
 ]

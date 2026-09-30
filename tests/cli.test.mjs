@@ -187,4 +187,27 @@ test("cli: verify detects policy violations in evidence and exits with code 1", 
   assert.equal(failed, true, "expected verification failure on violated evidence");
 });
 
+test("cli: supervise executes child process and runs live evidence verification", async () => {
+  let failed = false;
+  try {
+    const { stdout } = await exec(node, [
+      cli,
+      "supervise",
+      "examples/canonical-replace.intent.json",
+      "--",
+      node,
+      "-e",
+      "console.log('supervised-run');"
+    ]);
+    assert.match(stdout, /supervised-run/);
+    assert.match(stdout, /INTENT INDEPENDENT VERIFICATION REPORT/);
+  } catch (err) {
+    // Exits with code 1 if incomplete, which is expected since canonical-replace requires reviewed semantics
+    assert.equal(err.code, 1);
+    assert.match(err.stdout, /supervised-run/);
+    assert.match(err.stdout, /INTENT INDEPENDENT VERIFICATION REPORT/);
+  }
+});
+
+
 

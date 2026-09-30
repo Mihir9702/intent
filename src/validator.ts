@@ -2,6 +2,7 @@ import type { Diagnostic, IntentProgram, Proposition, ValidationResult } from ".
 import type { CanonicalEntity } from "./ontology/model.js";
 import { validateProgramShape } from "./schema.js";
 import { typeCheckSemantics } from "./ontology/typechecker.js";
+import { simulateSemantics } from "./simulator.js";
 
 function scalarKey(value: Proposition["value"]): string {
   return JSON.stringify(value);
@@ -100,6 +101,14 @@ export function validateIntent(program: IntentProgram): ValidationResult {
 
   if (program.semantics) {
     diagnostics.push(...typeCheckSemantics(program.semantics));
+    const sim = simulateSemantics(program);
+    for (const h of sim.hazards) {
+      diagnostics.push({
+        severity: h.severity,
+        code: h.code,
+        message: h.message
+      });
+    }
   }
 
   for (const ref of program.unresolved ?? []) {

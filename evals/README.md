@@ -27,6 +27,9 @@ This evaluation suite tests the deterministic guarantees of Intent v0.3 across c
 | `EVAL-10` | Universal Invariant Protection | Deletion blocked by universal wildcard (`*.delete=never`) | Block (`E202`) |
 | `EVAL-11` | Closed-Loop Evidence Verification | Execution evidence matches verification requirements | Pass (Audit Certificate generated) |
 | `EVAL-12` | Evidence Detects Invariant Violation | Execution evidence deletes protected log file | Block (Verification failed) |
+| `EVAL-13` | Temporal Use-After-Delete Hazard | Operation attempts to modify a deleted entity | Block (`E501`) |
+| `EVAL-14` | Temporal Use-Before-Create Hazard | Operation accesses unborn entity before creation | Block (`E502`) |
+| `EVAL-15` | Double Creation Hazard | Operation plan contains duplicate creates for same entity | Block (`E504`) |
 
 ## Running the Evaluation Suite
 
