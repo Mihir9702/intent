@@ -98,5 +98,5 @@ This is the main architectural purpose of the Canonical Intent Ontology.
 6. **Dependency graph** — validates explicit operation ordering.
 7. **Project policy** — inherited constraints and invariants.
 8. **Ambiguity** — unresolved references remain compiler-visible.
-9. **Target adapter** — produces model/provider-specific execution prompt.
+9. **Target adapter** — produces model/provider-specific execution prompts (Claude structured XML or Codex markdown specifications).
 10. **Evidence** — tests and independent review establish completion.

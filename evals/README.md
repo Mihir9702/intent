@@ -1,0 +1,28 @@
+# Intent Benchmark Evaluation Suite
+
+This evaluation suite tests the deterministic guarantees of Intent v0.3 across common real-world software engineering instruction scenarios.
+
+## Principles
+
+1. **Deterministic Verification**: Every scenario is evaluated locally without calling probabilistic model APIs.
+2. **Ambiguity Visibility**: Ambiguous entity bindings must stay visible and block destructive operations (`E403`).
+3. **Invariant Protection**: Operational semantics must respect project invariants (`E202`).
+4. **Type Safety**: Unchecked or incompatible type replacements must be rejected (`E415`).
+5. **Cycle Detection**: Operational dependency cycles must be caught before execution (`E426`).
+6. **Cross-Compiler Consistency**: Valid programs must compile deterministically to both Claude (`--target claude`) and Codex (`--target codex`).
+
+## Scenarios
+
+| ID | Scenario | Tested Rule | Expected Outcome |
+|---|---|---|---|
+| `EVAL-01` | Ambiguous Entity Binding | Deletion depends on unresolved reference | Block (`E403`) |
+| `EVAL-02` | Immutable Historical Document | Deletion of invariant-protected record | Block (`E202`) |
+| `EVAL-03` | Incompatible Type Replacement | Record replaced with raw PDF file | Block (`E415`) |
+| `EVAL-04` | Migration Dependency Cycle | Cyclic operation dependencies | Block (`E426`) |
+| `EVAL-05` | Verified Canonical Replacement | Complete resolved task with policy | Pass (`Claude` + `Codex` target output) |
+
+## Running the Evaluation Suite
+
+```powershell
+npm run eval
+```

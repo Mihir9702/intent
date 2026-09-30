@@ -96,14 +96,15 @@ v0.3 validation includes:
 1. canonical AST structural validation;
 2. statement scalar/confidence validation;
 3. conflicting observation/invariant checks;
-4. direct legacy goal/invariant conflict checks;
-5. unresolved-reference blocking;
-6. canonical entity/reference validation;
-7. canonical operation signature checking;
-8. operation argument entity/scalar type checking;
-9. replacement compatibility checking;
-10. operation dependency validation and cycle detection;
-11. project policy inheritance;
-12. warnings for missing verification or completion conditions.
+4. direct legacy goal/invariant conflict checks (E201);
+5. canonical operation invariant enforcement (E202);
+6. unresolved-reference blocking;
+7. canonical entity/reference validation;
+8. canonical operation signature checking;
+9. operation argument entity/scalar type checking;
+10. replacement compatibility checking;
+11. operation dependency validation and cycle detection;
+12. project policy inheritance;
+13. warnings for missing verification or completion conditions.
 
 The compiler still does **not** claim to prove arbitrary logical equivalence or domain business rules. Those require explicit deterministic rules.

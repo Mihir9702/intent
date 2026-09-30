@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "schema:generate": "npm run build && node scripts/generate-semantic-schema.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
-    "check": "npm test"
+    "check": "npm test",
+    "eval": "npm run build && node evals/run-evals.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

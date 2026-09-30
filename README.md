@@ -219,6 +219,12 @@ Compile it for the Claude-oriented XML target:
 node dist\src\cli.js compile examples\canonical-replace.intent.json --target claude
 ```
 
+Compile it for the Codex/OpenAI Markdown target:
+
+```powershell
+node dist\src\cli.js compile examples\canonical-replace.intent.json --target codex
+```
+
 Now validate the intentionally ambiguous example:
 
 ```powershell
@@ -298,7 +304,7 @@ The current deterministic ontology layer checks, among other things:
 - unknown/self operation dependencies;
 - operation dependency cycles;
 - source provenance bounds;
-- inherited project invariants.
+- inherited project invariants over goals (E201) and operations (E202).
 
 When replacement compatibility cannot be proven from available type information, Intent warns instead of pretending compatibility is known.
 
@@ -360,6 +366,12 @@ Regenerate the semantic-draft schema:
 npm run schema:generate
 ```
 
+Run the benchmark evaluation suite:
+
+```powershell
+npm run eval
+```
+
 Run the complete local verification suite:
 
 ```powershell
@@ -372,7 +384,8 @@ Current verified checkpoint:
 package:        0.4.0
 language:       0.3
 core ontology:  intent-core/0.1
-tests:          31 passing
+target adapters: Claude (XML), Codex (Markdown), compact, canonical JSON
+evaluations:    5/5 benchmark scenarios passing
 ```
 
 Intent is under active development. The next useful milestone is to evaluate the canonical representation against a larger set of real software-development instructions and measure whether it reduces missed constraints, silent assumptions, and model-to-model semantic drift.

@@ -1,0 +1,158 @@
+[
+  {
+    "id": "EVAL-01",
+    "name": "Ambiguous Entity Binding with Dependent Deletion",
+    "description": "Natural language instruction 'Replace old document with corrected version, then delete old one' where 'old one' is ambiguous. Deterministic compiler must catch ambiguity and block destructive delete.",
+    "input": "examples/ambiguous-replace-delete.intent.json",
+    "expectedOk": false,
+    "expectedDiagnostics": ["E403"]
+  },
+  {
+    "id": "EVAL-02",
+    "name": "Immutable Historical Document Invariant Protection",
+    "description": "Attempt to update or delete a historical document when inherited project policy specifies historical_documents.mutable=false.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "audit.snapshot", "raw": "audit.snapshot" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "tests", "value": "pass", "raw": "tests=pass" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          {
+            "id": "tax_invoice_2024",
+            "kind": "document",
+            "type": "archive.historical_documents",
+            "resolution": "resolved"
+          }
+        ],
+        "operations": [
+          {
+            "id": "delete_tax_invoice",
+            "kind": "delete",
+            "target": "tax_invoice_2024",
+            "arguments": [],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "inherit": ["examples/project.intent"],
+    "expectedOk": false,
+    "expectedDiagnostics": ["E202"]
+  },
+  {
+    "id": "EVAL-03",
+    "name": "Incompatible Type Replacement Detection",
+    "description": "Attempt to replace an accounting database record with an incompatible raw PDF file. Compiler must block with E415.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "verify.schema", "raw": "verify.schema" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "tests", "value": "pass", "raw": "tests=pass" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          {
+            "id": "ledger_entry",
+            "kind": "record",
+            "type": "accounting.ledger",
+            "resolution": "resolved"
+          },
+          {
+            "id": "scanned_receipt",
+            "kind": "file",
+            "type": "application.pdf",
+            "resolution": "resolved"
+          }
+        ],
+        "operations": [
+          {
+            "id": "replace_ledger",
+            "kind": "replace",
+            "target": "ledger_entry",
+            "arguments": [
+              { "role": "with", "entity": "scanned_receipt" }
+            ],
+            "dependsOn": []
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E415"]
+  },
+  {
+    "id": "EVAL-04",
+    "name": "Multi-Stage Migration Dependency Cycle Detection",
+    "description": "Multi-operation database migration where operations have an accidental dependency loop. Compiler must detect the cycle with E426.",
+    "task": {
+      "version": "0.3",
+      "statements": [
+        {
+          "kind": "verification",
+          "propositions": [{ "path": "db.migrated", "raw": "db.migrated" }],
+          "line": 1
+        },
+        {
+          "kind": "done",
+          "propositions": [{ "path": "tests", "value": "pass", "raw": "tests=pass" }],
+          "line": 2
+        }
+      ],
+      "semantics": {
+        "ontology": "intent-core/0.1",
+        "entities": [
+          { "id": "users_table", "kind": "record", "resolution": "resolved" },
+          { "id": "auth_service", "kind": "service", "resolution": "resolved" }
+        ],
+        "operations": [
+          {
+            "id": "step_a",
+            "kind": "update",
+            "target": "users_table",
+            "arguments": [],
+            "dependsOn": ["step_b"]
+          },
+          {
+            "id": "step_b",
+            "kind": "execute",
+            "target": "auth_service",
+            "arguments": [],
+            "dependsOn": ["step_a"]
+          }
+        ]
+      }
+    },
+    "expectedOk": false,
+    "expectedDiagnostics": ["E426"]
+  },
+  {
+    "id": "EVAL-05",
+    "name": "Coherent Document Replacement with Verification and Targets",
+    "description": "Valid, fully resolved document replacement with constraints, verification, and completion conditions. Must pass validation and compile cleanly to both Claude XML and Codex Markdown targets.",
+    "input": "examples/canonical-replace.intent.json",
+    "inherit": ["examples/project.intent"],
+    "expectedOk": true,
+    "expectedDiagnostics": [],
+    "testCompilers": ["claude", "codex", "json"]
+  }
+]

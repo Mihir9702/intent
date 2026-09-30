@@ -9,6 +9,7 @@ import { ClaudeSemanticFrontend } from "./frontends/claude.js";
 import { CodexSemanticFrontend } from "./frontends/codex.js";
 import { renderEnglish } from "./renderers/english.js";
 import { renderClaude } from "./renderers/claude.js";
+import { renderCodex } from "./renderers/codex.js";
 import { renderCompact } from "./renderers/compact.js";
 
 async function load(file: string) {
@@ -68,8 +69,9 @@ function usage(): never {
 Usage:
   intent parse <file> [--inherit policy.intent]
   intent validate <file> [--inherit policy.intent]
+  intent check <file> [--inherit policy.intent]
   intent explain <file> [--inherit policy.intent]
-  intent compile <file> [--inherit policy.intent] [--target claude|json|compact] [--out path]
+  intent compile <file> [--inherit policy.intent] [--target claude|codex|json|compact] [--out path]
   intent translate <english.txt> --via claude|codex [--model name] [--effort high]
                    [--inherit policy.intent] [--format json|explain] [--out path]
 
@@ -143,6 +145,7 @@ async function main() {
     case "parse":
       console.log(JSON.stringify(program, null, 2));
       return;
+    case "check":
     case "validate": {
       const result = validateIntent(program);
       printDiagnostics(result);
@@ -163,6 +166,7 @@ async function main() {
       const target = valueAfter(args, "--target") ?? "claude";
       let output: string;
       if (target === "claude") output = renderClaude(program);
+      else if (target === "codex") output = renderCodex(program);
       else if (target === "json") output = JSON.stringify(program, null, 2);
       else if (target === "compact") output = renderCompact(program);
       else throw new Error(`unknown target '${target}'`);

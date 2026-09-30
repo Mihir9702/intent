@@ -184,6 +184,8 @@ Important ontology diagnostics include:
 
 | Code | Meaning |
 |---|---|
+| `E201` | goal directly violates invariant |
+| `E202` | canonical operation violates declared or inherited invariant |
 | `E403` | operation references unresolved entity |
 | `E408` | unknown target |
 | `E409` | operation received an unsupported argument role |
